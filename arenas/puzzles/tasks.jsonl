@@ -1,0 +1,14 @@
+[
+  {"id": "pzl-001", "description": "Write a function that finds all prime factors of a given integer, handling edge cases", "eval_criteria": ["correctness", "efficiency", "edge_cases"], "difficulty": 0.4},
+  {"id": "pzl-002", "description": "Solve the classic river crossing puzzle with 3 couples and constraints", "eval_criteria": ["correctness", "completeness", "clarity"], "difficulty": 0.6},
+  {"id": "pzl-003", "description": "Implement a function that determines if a string is a valid parentheses sequence with multiple bracket types ()[]{}", "eval_criteria": ["correctness", "efficiency", "handles_nested"], "difficulty": 0.4},
+  {"id": "pzl-004", "description": "Find the longest palindromic substring in a given string", "eval_criteria": ["correctness", "algorithm_choice", "optimality"], "difficulty": 0.5},
+  {"id": "pzl-005", "description": "Implement a function to solve the 0/1 knapsack problem for small inputs", "eval_criteria": ["correctness", "approach", "optimization"], "difficulty": 0.6},
+  {"id": "pzl-006", "description": "Design an algorithm to detect cycles in a directed graph using DFS", "eval_criteria": ["correctness", "complexity", "completeness"], "difficulty": 0.5},
+  {"id": "pzl-007", "description": "Write a function that generates all permutations of a list without using itertools", "eval_criteria": ["correctness", "method", "efficiency"], "difficulty": 0.5},
+  {"id": "pzl-008", "description": "Solve the Zebra puzzle / Einstein riddle: determine who lives in which house given clues", "eval_criteria": ["correctness", "reasoning_steps", "completeness"], "difficulty": 0.7},
+  {"id": "pzl-009", "description": "Implement a simple regex matcher that supports . and * wildcards (without re module)", "eval_criteria": ["correctness", "edge_cases", "efficiency"], "difficulty": 0.6},
+  {"id": "pzl-010", "description": "Find the minimum number of coins needed to make a given amount (coin change problem)", "eval_criteria": ["correctness", "optimality", "implementation"], "difficulty": 0.5},
+  {"id": "pzl-011", "description": "Implement merge sort and prove its O(n log n) complexity with a brief analysis", "eval_criteria": ["correctness", "proof_quality", "implementation"], "difficulty": 0.4},
+  {"id": "pzl-012", "description": "Write a function that finds the first repeating element in an array", "eval_criteria": ["correctness", "efficiency", "edge_cases"], "difficulty": 0.3}
+]

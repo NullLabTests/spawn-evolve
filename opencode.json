@@ -1,0 +1,16 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode/big-pickle",
+  "small_model": "opencode/big-pickle",
+  "permission": {
+    "bash": "grant",
+    "write": "grant",
+    "edit": "grant"
+  },
+  "snapshot": false,
+  "autoupdate": false,
+  "instructions": ["./arena/TASK_RULES.md"],
+  "watcher": {
+    "ignore": ["generations/**", "population/**", "logs/**", "node_modules/**"]
+  }
+}
