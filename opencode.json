@@ -3,9 +3,10 @@
   "model": "opencode/big-pickle",
   "small_model": "opencode/big-pickle",
   "permission": {
-    "bash": "grant",
-    "write": "grant",
-    "edit": "grant"
+    "*": "allow",
+    "bash": "allow",
+    "edit": "allow",
+    "write": "allow"
   },
   "snapshot": false,
   "autoupdate": false,
