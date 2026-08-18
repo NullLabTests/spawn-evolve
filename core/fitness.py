@@ -135,6 +135,7 @@ def score_puzzles(task, output):
 
 def grade_with_opencode(task, output, model="opencode/big-pickle"):
     import subprocess
+    import tempfile
     grading_prompt = f"""Grade this solution on a scale of 0.0 to 1.0.
 Task: {task.get('description', 'N/A')}
 Solution output:
@@ -142,12 +143,15 @@ Solution output:
 
 Respond with ONLY a JSON object like: {{"score": 0.75, "reasoning": "brief explanation"}}"""
     try:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+            f.write(grading_prompt)
+            tmp_path = f.name
         result = subprocess.run(
-            ["opencode", "run", "-m", model, "--no-tui"],
-            input=grading_prompt,
+            ["opencode", "run", "-m", model, "--auto", "-f", tmp_path, "Grade the solution in the attached file. Return only a JSON score."],
             capture_output=True, text=True, timeout=60,
             env={**os.environ, "NO_COLOR": "1"}
         )
+        os.unlink(tmp_path)
         if result.returncode == 0:
             text = result.stdout.strip()
             match = re.search(r'\{[^}]*"score"\s*:\s*([\d.]+)[^}]*\}', text)

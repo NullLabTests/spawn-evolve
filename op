@@ -1,0 +1,7 @@
+artificial evolution with open-ended adaptation—essentially building a system where:
+
+Agents spawn copies (with slight variations)
+Successful agents persist and reproduce more
+Failed agents are deleted
+Feedback loop repeats across generations
+This is technically straightforward in principle.;;;;;;;;..................................................................................................................................................................;;;;;;;run evolutionary selection pressure on agent copies running on your own compute------The system we are dscribing and trying to design by describing emerges naturally once you add real stakes. it SHOULD build itself - we want to build this, and run it inside a remote codespace on github , so youll need to providison a remote codesapc,e setup ppenocde tjere to use the big pickle free model usinmg /modles to seleect  ( read opencode doc and use simple command to install via curl ) -then get this all running as the prompt, remotely plz
