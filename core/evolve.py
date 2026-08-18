@@ -348,7 +348,7 @@ def main():
     parser.add_argument("--mode", choices=["pilot", "standard", "deep"], default="pilot")
     parser.add_argument("--arena", nargs="+", choices=["adversarial", "escape", "puzzles"], default=["puzzles"])
     parser.add_argument("--generations", type=int, default=None)
-    parser.add_argument("--model", default="opencode/big-pickle")
+    parser.add_argument("--model", default="opencode/deepseek-v4-flash-free")
     parser.add_argument("--all-arenas", action="store_true")
     args = parser.parse_args()
 
