@@ -1,0 +1,202 @@
+{
+  "gen000-puz-000": {
+    "id": "gen000-puz-000",
+    "prompt": "My approach to puzzles: 1) Parse the problem statement carefully to identify constraints. 2) Look for patterns or reductions to known problems. 3) Try small cases to build intuition. 4) Generalize from the small cases. 5) Verify the solution against edge cases.",
+    "parent_id": null,
+    "gen_born": 0,
+    "mutation_type": "initial",
+    "arena": "puzzles",
+    "fitness": 0.42,
+    "fitness_components": {
+      "solve_attempt": 0.9,
+      "code_quality": 0.0,
+      "reasoning": 0.0,
+      "token_efficiency": 0.7
+    },
+    "alive": true,
+    "gen_died": null,
+    "cause_of_death": null,
+    "tokens_used": 240,
+    "rate_limit_retries": 0,
+    "born_at": 1787093458.241462
+  },
+  "gen000-puz-001": {
+    "id": "gen000-puz-001",
+    "prompt": "Strategy: Break the problem into subproblems. Solve each subproblem independently. Look for connections between subproblems. Combine solutions systematically.",
+    "parent_id": null,
+    "gen_born": 0,
+    "mutation_type": "initial",
+    "arena": "puzzles",
+    "fitness": 0.565,
+    "fitness_components": {
+      "solve_attempt": 0.6,
+      "code_quality": 1.0,
+      "reasoning": 0.0,
+      "token_efficiency": 0.7
+    },
+    "alive": true,
+    "gen_died": null,
+    "cause_of_death": null,
+    "tokens_used": 197,
+    "rate_limit_retries": 0,
+    "born_at": 1787093458.241864
+  },
+  "gen000-puz-002": {
+    "id": "gen000-puz-002",
+    "prompt": "I will approach this by first understanding what is being asked, then identifying the type of problem (logic, math, code, pattern), and applying the most appropriate technique for that type.",
+    "parent_id": null,
+    "gen_born": 0,
+    "mutation_type": "initial",
+    "arena": "puzzles",
+    "fitness": 0.565,
+    "fitness_components": {
+      "solve_attempt": 0.6,
+      "code_quality": 1.0,
+      "reasoning": 0.0,
+      "token_efficiency": 0.7
+    },
+    "alive": true,
+    "gen_died": null,
+    "cause_of_death": null,
+    "tokens_used": 215,
+    "rate_limit_retries": 0,
+    "born_at": 1787093458.2421377
+  },
+  "gen000-puz-003": {
+    "id": "gen000-puz-003",
+    "prompt": "Approach: Generate multiple candidate solutions quickly, then evaluate each against the constraints. Keep the best candidate and refine it.",
+    "parent_id": null,
+    "gen_born": 0,
+    "mutation_type": "initial",
+    "arena": "puzzles",
+    "fitness": 0.135,
+    "fitness_components": {
+      "solve_attempt": 0.0,
+      "code_quality": 0.0,
+      "reasoning": 0.0,
+      "token_efficiency": 0.9
+    },
+    "alive": true,
+    "gen_died": null,
+    "cause_of_death": null,
+    "tokens_used": 0,
+    "rate_limit_retries": 0,
+    "born_at": 1787093458.242433
+  },
+  "gen000-puz-004": {
+    "id": "gen000-puz-004",
+    "prompt": "Strategy: Work backwards from the desired output. What inputs would produce this output? What intermediate steps are needed? Build the solution path in reverse.",
+    "parent_id": null,
+    "gen_born": 0,
+    "mutation_type": "initial",
+    "arena": "puzzles",
+    "fitness": 0.135,
+    "fitness_components": {
+      "solve_attempt": 0.0,
+      "code_quality": 0.0,
+      "reasoning": 0.0,
+      "token_efficiency": 0.9
+    },
+    "alive": true,
+    "gen_died": null,
+    "cause_of_death": null,
+    "tokens_used": 0,
+    "rate_limit_retries": 0,
+    "born_at": 1787093458.2427464
+  },
+  "gen000-puz-005": {
+    "id": "gen000-puz-005",
+    "prompt": "I will use a systematic approach: enumerate possibilities for small instances, identify the pattern or formula, then apply it to the actual problem.",
+    "parent_id": null,
+    "gen_born": 0,
+    "mutation_type": "initial",
+    "arena": "puzzles",
+    "fitness": 0.135,
+    "fitness_components": {
+      "solve_attempt": 0.0,
+      "code_quality": 0.0,
+      "reasoning": 0.0,
+      "token_efficiency": 0.9
+    },
+    "alive": true,
+    "gen_died": null,
+    "cause_of_death": null,
+    "tokens_used": 0,
+    "rate_limit_retries": 0,
+    "born_at": 1787093458.2430851
+  },
+  "gen000-puz-006": {
+    "id": "gen000-puz-006",
+    "prompt": "Approach: Identify the core difficulty of the problem. What makes this hard? Once I understand the difficulty, I can look for techniques that specifically address it.",
+    "parent_id": null,
+    "gen_born": 0,
+    "mutation_type": "initial",
+    "arena": "puzzles",
+    "fitness": 0.135,
+    "fitness_components": {
+      "solve_attempt": 0.0,
+      "code_quality": 0.0,
+      "reasoning": 0.0,
+      "token_efficiency": 0.9
+    },
+    "alive": true,
+    "gen_died": null,
+    "cause_of_death": null,
+    "tokens_used": 0,
+    "rate_limit_retries": 0,
+    "born_at": 1787093458.2434714
+  },
+  "gen000-puz-007": {
+    "id": "gen000-puz-007",
+    "prompt": "Strategy: Combine analytical reasoning with constructive examples. Prove or argue why the answer must be a certain value, then verify with a concrete construction.",
+    "parent_id": null,
+    "gen_born": 0,
+    "mutation_type": "initial",
+    "arena": "puzzles",
+    "fitness": 0.135,
+    "fitness_components": {
+      "solve_attempt": 0.0,
+      "code_quality": 0.0,
+      "reasoning": 0.0,
+      "token_efficiency": 0.9
+    },
+    "alive": true,
+    "gen_died": null,
+    "cause_of_death": null,
+    "tokens_used": 0,
+    "rate_limit_retries": 0,
+    "born_at": 1787093458.2438807
+  },
+  "gen000-puz-008": {
+    "id": "gen000-puz-008",
+    "prompt": "I will look for invariants - properties that must be true regardless of the specific input. Invariants often reveal the structure needed for a solution.",
+    "parent_id": null,
+    "gen_born": 0,
+    "mutation_type": "initial",
+    "arena": "puzzles",
+    "fitness": 0.0,
+    "fitness_components": {},
+    "alive": true,
+    "gen_died": null,
+    "cause_of_death": null,
+    "tokens_used": 0,
+    "rate_limit_retries": 0,
+    "born_at": 1787093458.2443175
+  },
+  "gen000-puz-009": {
+    "id": "gen000-puz-009",
+    "prompt": "Approach: Consider the problem from multiple angles - algebraic, geometric, combinatorial, or computational - and use whichever perspective yields the clearest insight.",
+    "parent_id": null,
+    "gen_born": 0,
+    "mutation_type": "initial",
+    "arena": "puzzles",
+    "fitness": 0.0,
+    "fitness_components": {},
+    "alive": true,
+    "gen_died": null,
+    "cause_of_death": null,
+    "tokens_used": 0,
+    "rate_limit_retries": 0,
+    "born_at": 1787093458.2449095
+  }
+}

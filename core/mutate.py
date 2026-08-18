@@ -19,31 +19,18 @@ MUTATION_OPERATORS = [
 ]
 
 def call_opencode(prompt, model="opencode/big-pickle", timeout=120):
-    import tempfile
     try:
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write(prompt)
-            tmp_path = f.name
         result = subprocess.run(
-            ["opencode", "run", "-m", model, "--auto", "-f", tmp_path, "Execute the strategy described in the attached file. Provide your complete response."],
+            ["opencode", "run", "-m", model, "--auto", prompt],
             capture_output=True,
             text=True,
             timeout=timeout,
             env={**os.environ, "NO_COLOR": "1"}
         )
-        os.unlink(tmp_path)
         return result.stdout.strip() if result.returncode == 0 else ""
     except subprocess.TimeoutExpired:
-        try:
-            os.unlink(tmp_path)
-        except Exception:
-            pass
         return ""
     except Exception as e:
-        try:
-            os.unlink(tmp_path)
-        except Exception:
-            pass
         return f"ERROR: {e}"
 
 def mutate_prompt(original_prompt, parent_fitness=0.0, sibling_prompts=None, arena="puzzles"):

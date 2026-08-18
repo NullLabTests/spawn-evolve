@@ -1,0 +1,6 @@
+{"timestamp": 1787093462.371883, "event": "rate_limit_wait", "wait_seconds": 0.47, "backoff_multiplier": 1.0, "bucket_level": 0.72}
+{"timestamp": 1787093464.5422246, "event": "rate_limit_wait", "wait_seconds": 2.48, "backoff_multiplier": 2.0, "bucket_level": 0.62}
+{"timestamp": 1787093467.0209515, "event": "rate_limit_wait", "wait_seconds": 3.81, "backoff_multiplier": 4.0, "bucket_level": 0.66}
+{"timestamp": 1787093472.5739932, "event": "rate_limit_wait", "wait_seconds": 0.61, "backoff_multiplier": 6.8, "bucket_level": 0.97}
+{"timestamp": 1787093475.0737374, "event": "rate_limit_wait", "wait_seconds": 20.16, "backoff_multiplier": 11.56, "bucket_level": 0.01}
+{"timestamp": 1787093500.0930147, "event": "rate_limit_wait", "wait_seconds": 16.92, "backoff_multiplier": 10.26, "bucket_level": 0.03}
