@@ -18,20 +18,38 @@ MUTATION_OPERATORS = [
     "escalate"
 ]
 
+def _find_opencode():
+    import shutil
+    path = shutil.which("opencode")
+    if path:
+        return path
+    candidates = [
+        os.path.expanduser("~/.opencode/bin/opencode"),
+        "/home/codespace/.opencode/bin/opencode",
+        "/home/codespace/nvm/current/bin/opencode",
+    ]
+    for c in candidates:
+        if os.path.isfile(c):
+            return c
+    return "opencode"
+
+OPENCODE_BIN = _find_opencode()
+
 def call_opencode(prompt, model="opencode/big-pickle", timeout=120):
     try:
+        env = {**os.environ, "NO_COLOR": "1"}
         result = subprocess.run(
-            ["opencode", "run", "-m", model, "--auto", prompt],
+            [OPENCODE_BIN, "run", "-m", model, "--auto", prompt],
             capture_output=True,
             text=True,
             timeout=timeout,
-            env={**os.environ, "NO_COLOR": "1"}
+            env=env
         )
         return result.stdout.strip() if result.returncode == 0 else ""
     except subprocess.TimeoutExpired:
         return ""
     except Exception as e:
-        return f"ERROR: {e}"
+        return ""
 
 def mutate_prompt(original_prompt, parent_fitness=0.0, sibling_prompts=None, arena="puzzles"):
     operator = random.choice(MUTATION_OPERATORS)
