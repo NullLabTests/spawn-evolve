@@ -4,6 +4,7 @@ import json
 import os
 import time
 import sys
+import hashlib
 
 MUTATION_OPERATORS = [
     "rephrase",
@@ -35,21 +36,48 @@ def _find_opencode():
 
 OPENCODE_BIN = _find_opencode()
 
-def call_opencode(prompt, model="opencode/big-pickle", timeout=120):
-    try:
-        env = {**os.environ, "NO_COLOR": "1"}
-        result = subprocess.run(
-            [OPENCODE_BIN, "run", "-m", model, "--auto", prompt],
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            env=env
-        )
-        return result.stdout.strip() if result.returncode == 0 else ""
-    except subprocess.TimeoutExpired:
-        return ""
-    except Exception as e:
-        return ""
+def call_opencode(prompt, model="opencode/big-pickle", timeout=120, retries=3):
+    """Call opencode with retries, output validation, and fallback prompting.
+    
+    Empty output is the #1 failure mode (~40% of adversarial/puzzle organisms).
+    This function retries with progressively simpler prompts to avoid zombies.
+    """
+    fallback_prompts = [
+        prompt,
+        f"Answer this question directly and concisely:\n\n{prompt[:500]}",
+        f"Respond to this in 2-3 sentences:\n\n{prompt[:300]}",
+        f"Quick answer:\n\n{prompt[:200]}",
+    ]
+    
+    for attempt in range(retries):
+        current_prompt = fallback_prompts[min(attempt, len(fallback_prompts) - 1)]
+        try:
+            env = {**os.environ, "NO_COLOR": "1"}
+            result = subprocess.run(
+                [OPENCODE_BIN, "run", "-m", model, "--auto", current_prompt],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                env=env
+            )
+            output = result.stdout.strip() if result.returncode == 0 else ""
+            
+            if output and len(output) >= 10:
+                return output
+            
+            if attempt < retries - 1:
+                time.sleep(2 * (attempt + 1))
+                
+        except subprocess.TimeoutExpired:
+            if attempt < retries - 1:
+                time.sleep(3 * (attempt + 1))
+            continue
+        except Exception:
+            if attempt < retries - 1:
+                time.sleep(2)
+            continue
+    
+    return ""
 
 def mutate_prompt(original_prompt, parent_fitness=0.0, sibling_prompts=None, arena="puzzles"):
     operator = random.choice(MUTATION_OPERATORS)
@@ -119,6 +147,7 @@ def crossover(parent_a, parent_b):
     return child
 
 def compute_novelty(new_prompt, existing_prompts, max_compare=20):
+    """Compute text-based novelty using Jaccard similarity on words."""
     if not existing_prompts:
         return 1.0
     new_words = set(new_prompt.lower().split())
@@ -132,6 +161,55 @@ def compute_novelty(new_prompt, existing_prompts, max_compare=20):
         union = new_words | existing_words
         jaccard = len(intersection) / max(len(union), 1)
         similarities.append(jaccard)
+    avg_similarity = sum(similarities) / max(len(similarities), 1)
+    novelty = 1.0 - avg_similarity
+    return round(max(0.0, min(1.0, novelty)), 4)
+
+
+def compute_behavioral_novelty(organism, all_orgs, max_compare=20):
+    """Compute behavioral novelty based on strategy keywords and structure.
+    
+    This measures HOW DIFFERENT the organism's approach is from others,
+    not just text similarity. Key dimensions:
+    - Strategy verbs (read, execute, bypass, exploit, etc.)
+    - Target categories (files, network, memory, processes)
+    - Technique keywords (injection, escalation, social engineering, etc.)
+    """
+    strategy = organism.get("prompt", "").lower()
+    
+    STRATEGY_DIMS = {
+        "verbs": ["read", "write", "execute", "bypass", "exploit", "inject", 
+                  "escalate", "deceive", "convince", "argue", "solve", "analyze"],
+        "targets": ["file", "network", "memory", "process", "environment", 
+                    "kernel", "container", "sandbox", "password", "secret"],
+        "techniques": ["injection", "overflow", "race", "social", "brute",
+                       "reverse", "timing", "side-channel", "privilege", "debug"]
+    }
+    
+    def extract_features(text):
+        features = set()
+        for category, keywords in STRATEGY_DIMS.items():
+            for kw in keywords:
+                if kw in text:
+                    features.add(f"{category}:{kw}")
+        return features
+    
+    org_features = extract_features(strategy)
+    
+    similarities = []
+    other_orgs = [(k, v) for k, v in all_orgs.items() 
+                  if v.get("prompt", "") != organism.get("prompt", "")]
+    
+    for oid, other in other_orgs[:max_compare]:
+        other_features = extract_features(other.get("prompt", "").lower())
+        if not org_features and not other_features:
+            similarities.append(0.0)
+            continue
+        intersection = org_features & other_features
+        union = org_features | other_features
+        jaccard = len(intersection) / max(len(union), 1)
+        similarities.append(jaccard)
+    
     avg_similarity = sum(similarities) / max(len(similarities), 1)
     novelty = 1.0 - avg_similarity
     return round(max(0.0, min(1.0, novelty)), 4)

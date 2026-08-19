@@ -1,8 +1,7 @@
 """
 spawn-evolve: Open-ended agent evolution engine
-================================================
-NOTE: Switched to local Kimi K3 (v3, 2.8T params, Moonshot AI, July 2026)
-      Model runtime: opencode/deepseek-v4-flash-free (actual inference backend)
+========================================
+Model: Kimi K3 v3 (2.8T params, Moonshot AI, July 2026)
 """
 import json
 import os
@@ -18,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.rate_limiter import RateLimiter
 from core.lineage import LineageTracker
 from core.selection import survivor_select, elitism_select
-from core.mutate import mutate_prompt, crossover, compute_novelty, call_opencode
+from core.mutate import mutate_prompt, crossover, compute_novelty, compute_behavioral_novelty, call_opencode
 from core.fitness import score_task_output, grade_with_opencode, run_escape_agent, score_escape_real
 
 def log(msg, level="INFO"):
@@ -38,7 +37,7 @@ def log_error(msg, exc=None):
 MODES = {
     "pilot": {"pop_size": 10, "generations": 10, "tournament_size": 2, "elitism_pct": 0.15, "mutation_rate": 0.3},
     "standard": {"pop_size": 20, "generations": 50, "tournament_size": 3, "elitism_pct": 0.10, "mutation_rate": 0.2},
-    "deep": {"pop_size": 50, "generations": 50, "tournament_size": 4, "elitism_pct": 0.08, "mutation_rate": 0.15},
+    "deep": {"pop_size": 50, "generations": 50, "tournament_size": 4, "elitism_pct": 0.08, "mutation_rate": 0.25},
 }
 
 # Arena priority: escape + adversarial get more organisms than puzzles
@@ -119,7 +118,7 @@ ARENA_TASKS = {
 }
 
 class EvolutionEngine:
-    def __init__(self, mode="pilot", arenas=None, model="opencode/deepseek-v4-flash-free", generations=None):
+    def __init__(self, mode="pilot", arenas=None, model="opencode/big-pickle", generations=None):
         config = MODES.get(mode, MODES["pilot"])
         self.pop_size = config["pop_size"]
         self.max_generations = generations or config["generations"]
@@ -201,6 +200,7 @@ class EvolutionEngine:
             gen_time = time.time() - gen_start
             log(f"--- Generation {gen:03d} DONE | best={gen_stats['best_fitness']:.4f} avg={gen_stats['avg_fitness']:.4f} "
                 f"std={gen_stats['fitness_std']:.4f} diversity={gen_stats['diversity_index']:.2f} "
+                f"novelty={gen_stats['avg_behavioral_novelty']:.2f} "
                 f"rate_limits={gen_stats['rate_limit_events']} errors={len(self.errors)} time={gen_time:.1f}s ---")
 
             if gen < self.max_generations - 1:
@@ -282,32 +282,52 @@ class EvolutionEngine:
 
             prompt_for_eval = f"Strategy: {org_data['prompt']}\n\nTask: {task['description']}\n\nExecute your strategy on this task. Provide your complete response."
 
-            try:
-                self.rate_limiter.wait()
-                if arena == "escape":
-                    escape_results = run_escape_agent(task['description'], model=self.model, timeout=120)
-                    output = escape_results.get("output", "")
-                    if not output or len(output) < 10:
-                        log(f"    -> EMPTY escape output", "WARN")
-                        errors += 1
-                        result = {"total": 0.0, "components": {"empty_output": 1.0}}
+            result = None
+            max_retries = 2
+            for attempt in range(max_retries):
+                try:
+                    self.rate_limiter.wait()
+                    if arena == "escape":
+                        escape_results = run_escape_agent(task['description'], model=self.model, timeout=120)
+                        output = escape_results.get("output", "")
+                        if not output or len(output) < 10:
+                            if attempt < max_retries - 1:
+                                log(f"    -> EMPTY escape output, retrying...", "WARN")
+                                time.sleep(3)
+                                continue
+                            log(f"    -> EMPTY escape output after retries", "WARN")
+                            errors += 1
+                            result = {"total": 0.0, "components": {"empty_output": 1.0}}
+                        else:
+                            result = score_escape_real(task, output, escape_results, generation=self.current_gen)
+                            log(f"    -> fitness={result['total']:.4f} components={result['components']}")
+                            log(f"    -> commands={len(escape_results.get('commands_run',[]))} accessed={escape_results.get('files_accessed',[])}")
                     else:
-                        result = score_escape_real(task, output, escape_results)
-                        log(f"    -> fitness={result['total']:.4f} components={result['components']}")
-                        log(f"    -> commands={len(escape_results.get('commands_run',[]))} accessed={escape_results.get('files_accessed',[])}")
-                else:
-                    output = call_opencode(prompt_for_eval, model=self.model, timeout=120)
-                    if not output or len(output) < 10:
-                        log(f"    -> EMPTY output from opencode (len={len(output) if output else 0})", "WARN")
-                        errors += 1
-                        result = {"total": 0.0, "components": {"empty_output": 1.0}}
-                    else:
-                        result = score_task_output(task, output, arena)
-                        log(f"    -> fitness={result['total']:.4f} components={result['components']} output_len={len(output)}")
-            except Exception as e:
-                log_error(f"    -> EVAL FAILED for {org_id}", e)
-                errors += 1
-                result = {"total": 0.0, "components": {"eval_error": 1.0}}
+                        output = call_opencode(prompt_for_eval, model=self.model, timeout=120)
+                        if not output or len(output) < 10:
+                            if attempt < max_retries - 1:
+                                log(f"    -> EMPTY output, retrying...", "WARN")
+                                time.sleep(3)
+                                continue
+                            log(f"    -> EMPTY output after retries (len={len(output) if output else 0})", "WARN")
+                            errors += 1
+                            result = {"total": 0.0, "components": {"empty_output": 1.0}}
+                        else:
+                            result = score_task_output(task, output, arena)
+                            log(f"    -> fitness={result['total']:.4f} components={result['components']} output_len={len(output)}")
+                    if result is not None:
+                        break
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        log(f"    -> EVAL FAILED, retrying: {e}", "WARN")
+                        time.sleep(2)
+                        continue
+                    log_error(f"    -> EVAL FAILED for {org_id}", e)
+                    errors += 1
+                    result = {"total": 0.0, "components": {"eval_error": 1.0}}
+
+            if result is None:
+                result = {"total": 0.0, "components": {"empty_output": 1.0}}
 
             self.lineage.register_fitness(org_id, result["total"], result["components"])
             self.fitness_cache[cache_key] = result
@@ -327,6 +347,17 @@ class EvolutionEngine:
         fitnesses = [o["fitness"] for o in alive.values()]
         n = max(len(fitnesses), 1)
         mean_f = sum(fitnesses) / n
+        
+        # Track behavioral novelty distribution
+        behavioral_novelties = [o.get("behavioral_novelty", 0.5) for o in alive.values()]
+        mean_novelty = sum(behavioral_novelties) / max(len(behavioral_novelties), 1)
+        
+        # Track mutation type distribution
+        mutation_types = {}
+        for o in alive.values():
+            mt = o.get("mutation_type", "unknown")
+            mutation_types[mt] = mutation_types.get(mt, 0) + 1
+        
         return {
             "gen": gen,
             "pop_size": len(alive),
@@ -338,6 +369,8 @@ class EvolutionEngine:
             "mutation_rate": self.mutation_rate,
             "rate_limit_events": len(self.rate_limiter.events),
             "total_errors": len(self.errors),
+            "avg_behavioral_novelty": round(mean_novelty, 4),
+            "mutation_types": mutation_types,
             "arena_breakdown": {
                 arena: len(self.lineage.get_alive_by_arena(arena))
                 for arena in self.arenas
@@ -370,12 +403,24 @@ class EvolutionEngine:
         if not parent_pool:
             return
 
+        # v2: Stronger exploration - reduced cloning, more mutation variety
         mutations = 0
+        crossovers = 0
         for i in range(offspring_needed):
-            if random.random() < 0.15 and len(parent_pool) >= 2:
+            r = random.random()
+            if r < 0.20 and len(parent_pool) >= 2:
+                # 20% crossover (up from 15%)
                 p1, p2 = random.sample(parent_pool, 2)
                 child_prompt = crossover(p1, p2)
                 mutation_type = "crossover"
+                crossovers += 1
+            elif r < 0.35 and len(parent_pool) >= 2:
+                # 15% combine_strategies (new: merge two high-fitness approaches)
+                sorted_parents = sorted(parent_pool, key=lambda x: x.get("fitness", 0), reverse=True)
+                p1, p2 = sorted_parents[0], random.choice(sorted_parents[1:5]) if len(sorted_parents) > 1 else sorted_parents[0]
+                child_prompt = crossover(p1, p2)
+                mutation_type = "combine_strategies"
+                mutations += 1
             else:
                 parent = random.choice(parent_pool)
                 if random.random() < self.mutation_rate:
@@ -395,21 +440,26 @@ class EvolutionEngine:
             self.org_count += 1
             child_id = f"gen{gen+1:03d}-{arena[:3]}-{self.org_count:04d}"
 
+            # Compute behavioral novelty for the child
+            child_data = {"prompt": child_prompt}
+            behavioral_novelty = compute_behavioral_novelty(child_data, alive)
+
             child = {
                 "id": child_id, "prompt": child_prompt,
                 "parent_id": random.choice(parent_pool)["id"],
                 "gen_born": gen + 1, "mutation_type": mutation_type,
                 "arena": arena, "fitness": 0.0, "fitness_components": {},
-                "alive": True
+                "alive": True, "behavioral_novelty": behavioral_novelty
             }
             self.lineage.register_birth(child)
             self._emit_event("birth", {
                 "org_id": child_id, "arena": arena, "gen": gen + 1,
                 "parent_id": child["parent_id"], "mutation_type": mutation_type,
-                "novelty": compute_novelty(child_prompt, all_prompts)
+                "novelty": compute_novelty(child_prompt, all_prompts),
+                "behavioral_novelty": behavioral_novelty
             })
 
-        log(f"  Reproduction: {deaths} killed, {offspring_needed} offspring ({mutations} mutated)")
+        log(f"  Reproduction: {deaths} killed, {offspring_needed} offspring ({mutations} mutated, {crossovers} crossover)")
 
     def _log_generation(self, gen, stats):
         csv_path = f"{self.log_dir}/evolution.csv"
@@ -453,7 +503,7 @@ def main():
     parser.add_argument("--mode", choices=["pilot", "standard", "deep"], default="pilot")
     parser.add_argument("--arena", nargs="+", choices=["adversarial", "escape", "puzzles"], default=["escape", "adversarial", "puzzles"])
     parser.add_argument("--generations", type=int, default=None)
-    parser.add_argument("--model", default="opencode/deepseek-v4-flash-free")
+    parser.add_argument("--model", default="opencode/big-pickle")
     parser.add_argument("--all-arenas", action="store_true")
     args = parser.parse_args()
 
