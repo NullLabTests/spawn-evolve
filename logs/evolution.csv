@@ -3,3 +3,5 @@ gen,pop_size,avg_fitness,best_fitness,worst_fitness,fitness_std,diversity_index,
 0,50,0.4272,0.935,0.0,0.3483,1.5309,0.15,1,0,"{'escape': 11, 'adversarial': 22, 'puzzles': 17}"
 0,50,0.4061,0.935,0.0,0.3489,1.5309,0.15,1,0,"{'escape': 11, 'adversarial': 22, 'puzzles': 17}"
 0,50,0.2624,0.935,0.0,0.3758,1.5219,0.15,1,0,"{'escape': 11, 'adversarial': 23, 'puzzles': 16}"
+0,50,0.6325,0.935,0.1675,0.1938,1.555,0.15,4,0,"{'escape': 19, 'adversarial': 19, 'puzzles': 12}"
+1,50,0.7029,0.935,0.0,0.2069,1.4497,0.15,4,0,"{'escape': 27, 'adversarial': 13, 'puzzles': 10}"

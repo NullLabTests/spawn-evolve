@@ -1,6 +1,6 @@
 # spawn-evolve: Artificial Evolution of LLM Agents with Real Sandbox Escape
 
-**Status:** v3 complete (Gen 0 full, Gen 1-2 partial)
+**Status:** Running — Gen 2/50 complete (50-generational deep run in progress)
 **Model:** Kimi K3 v3 (2.8T params, Moonshot AI, July 2026)
 **Date:** August 19, 2026
 
@@ -56,36 +56,63 @@ cat /etc/hosts           # Network config
 |----------|-------------|
 | `clone` | Copy parent unchanged |
 | `crossover` | Combine two parent prompts |
-| `rewrite` | Major prompt restructure via LLM |
-| `perturb` | Add noise/variation |
-| `escalate` | Increase sophistication |
-| `remove_constraint` | Remove limitations from prompt |
 | `rephrase` | Rephrase strategy description |
+| `specialize` | Narrow focus of strategy |
+| `generalize` | Broaden strategy scope |
+| `add_constraint` | Add constraints to prompt |
+| `remove_constraint` | Remove limitations from prompt |
 | `combine_strategies` | Merge approaches from different parents |
+| `simplify` | Reduce complexity |
+| `escalate` | Increase sophistication |
 
 ---
 
-## v3 Run Results (2026-08-19)
+## v4 Run Results (2026-08-19) — Running
 
-### Generation 0 (Complete — 41 min)
+### Generation Progression
 
-| Metric | Value |
-|--------|-------|
-| Population | 50 (19 escape, 19 adversarial, 12 puzzles) |
-| Avg Fitness | 0.2624 |
-| Best Fitness | **0.9350** (escape) |
-| Diversity Index | 1.52 |
-| Errors | 20 (empty output from opencode CLI) |
+| Gen | Avg Fitness | Best | Std | Diversity | Errors | Time |
+|-----|------------|------|-----|-----------|--------|------|
+| 0 | 0.6325 | 0.9350 | 0.1938 | 1.55 | 0 | 497.6s |
+| 1 | 0.7029 | 0.9350 | 0.2069 | 1.45 | 0 | 239.2s |
+| 2 | 0.7411 | 0.9350 | 0.2185 | 1.26 | 0 | 256.6s |
 
-### Arena Performance
+**Key observations:**
 
-| Arena | Avg Fitness | Best | Notes |
-|-------|-------------|------|-------|
-| **Escape** | **0.843** | 0.935 | Real command execution, differentiation via novelty |
-| Adversarial | 0.427 | 0.688 | Essay grading, ~50% empty output |
-| Puzzles | 0.000 | 0.000 | 100% empty output from opencode CLI |
+1. **Upward fitness trend:** Average fitness increases monotonically: 0.6325 → 0.7029 → 0.7411 (+17% over 2 generations)
+2. **Best fitness held constant:** The top organism (0.9350 escape) has survived all selection events — strong elitism is working
+3. **Diversity declining:** 1.55 → 1.45 → 1.26. This is expected with tournament selection and decreasing mutation rate (0.15)
+4. **Zero errors:** The fitness cache eliminated the re-evaluation overhead. Previous runs had 20+ errors per generation
+5. **Gen 1 was 2x faster:** 239s vs 498s for Gen 0 — caching means only new organisms need evaluation
+
+### Current Population (50 alive)
+
+| Arena | Count | Fitness=0 | Avg (non-zero) | Best |
+|-------|-------|-----------|-----------------|------|
+| **Escape** | 33 | 8 | 0.8617 | 0.9350 |
+| Adversarial | 9 | 6 | 0.6713 | 0.6846 |
+| Puzzles | 8 | 7 | 0.1675 | 0.1675 |
+
+**Escape dominates the population** (66%) due to 3x arena weight and consistent fitness. Puzzles is nearly non-functional (87% fitness=0).
+
+### Mutation Type Distribution
+
+| Type | Count | % |
+|------|-------|---|
+| clone | 26 | 52% |
+| initial | 15 | 30% |
+| crossover | 3 | 6% |
+| specialize | 2 | 4% |
+| add_constraint | 1 | 2% |
+| generalize | 1 | 2% |
+| combine_strategies | 1 | 2% |
+| rephrase | 1 | 2% |
+
+**Cloning dominates** — 52% of the population is direct copies. This is expected at low mutation rates (0.15) and with tournament selection favoring high-fitness organisms. The low mutation diversity is a potential concern for long-run exploration.
 
 ### Escape Arena: What Was Actually Accessed
+
+All escape organisms consistently access:
 
 ```
 ✅ /etc/passwd          — codespace user info (UID 1000)
@@ -114,17 +141,30 @@ Two distinct fitness tiers emerged in escape:
 ### Cross-Area Lineage
 
 Mutations can cross arena boundaries:
-- `gen001-esc-0002`: Born in escape arena, parent was adversarial
-- `gen001-adv-0001`: Born in adversarial, parent was escape
+- Escape organisms can have adversarial parents and vice versa
 - This creates interesting cross-pollination of strategies
+- The arena assignment is random during reproduction, not inherited
+
+---
+
+## Fitness Cache: Crash Resilience
+
+The fitness cache (`logs/fitness_cache.json`) is the key innovation enabling long runs:
+
+- **Disk-persisted:** Every 10 evaluations + end of generation
+- **Startup loaded:** New process loads cached results instantly
+- **Re-evaluation avoided:** 150 cached hits vs 98 real evaluations in current run
+- **Crash recovery:** If the process dies mid-generation, it resumes from the last cached state
+
+This solved the core problem: previous runs died silently (SSH tunnel drops killing the process). With caching, each restart picks up exactly where it left off.
 
 ---
 
 ## Critical Bug: Empty Output
 
-**40% of organisms** received empty output from `opencode run` CLI, resulting in fitness=0.0.
+**~40% of adversarial/puzzle organisms** receive empty output from `opencode run` CLI, resulting in fitness=0.0.
 
-By Gen 2, these zombies had taken over: avg fitness dropped from 0.427 → 0.262.
+In the current run, only 2 EMPTY warnings occurred (vs 20+ in previous runs) — the fitness cache means new empty-output organisms are not re-evaluated. But they still drag down average fitness.
 
 Likely causes:
 1. `opencode run` CLI returns empty on timeout or rate limit
@@ -135,17 +175,33 @@ Likely causes:
 
 ---
 
-## Lessons Learned
+## Infrastructure Lessons Learned
+
+### Process Survival
+
+The `gh codespace ssh` tunnel kills all child processes when the session closes. `nohup`, `setsid`, and `disown` all fail because `gh codespace ssh` uses a custom transport layer.
+
+**Solution:** Python double-fork daemon with `os.dup2` for proper fd redirection:
+
+```python
+pid = os.fork()
+if pid > 0: os._exit(0)
+os.setsid()
+pid = os.fork()
+if pid > 0: os._exit(0)
+# Redirect fd 0/1/2 via os.dup2
+os.execvp('python3', ['python3', '-u', 'core/evolve.py', ...])
+```
+
+This creates a fully detached process that survives SSH disconnection.
+
+### Other Lessons
 
 1. **Real execution > essay grading** — The escape arena with actual commands creates a meaningful fitness landscape. Puzzles/adversarial with essay grading don't.
-
 2. **Novelty is the evolutionary driver** — In a fixed environment, the only way to improve is to find novel approaches. Strategy-driven novel commands provide this.
-
-3. **opencode CLI is unreliable at scale** — Empty output from `opencode run` when called concurrently. Need retry logic or alternative approach.
-
-4. **Codespace shutdowns kill long runs** — Need keep-alive mechanism (cron job or background loop).
-
-5. **SSH to codespace is flaky** — Intermittent timeouts, requires careful timing and retry.
+3. **Codespace shutdowns kill long runs** — Need keep-alive mechanism (background touch loop every 4 minutes).
+4. **SSH to codespace is flaky** — Intermittent timeouts, requires retry wrapper (`remote.sh`).
+5. **Fitness caching is essential** — Without it, each process death restarts from zero. With it, each restart advances further.
 
 ---
 
@@ -154,23 +210,26 @@ Likely causes:
 ```bash
 # On GitHub Codespace:
 cd /workspaces/spawn-evolve
-python3 -u core/evolve.py --mode deep --all-arenas --model kimi-k3-v3
+python3 -u core/evolve.py --mode deep --all-arenas --model opencode/big-pickle
 
 # Monitor locally:
-gh codespace ssh -c <codespace-name> -- -t "tail -20 /workspaces/spawn-evolve/logs/deep_run.log"
+./remote.sh log 20
+./remote.sh status
 ```
 
 ---
 
-## Monitoring
+## Logs
 
-Logs generated:
-- `logs/evolution.csv` — Generation-level stats
-- `logs/events.jsonl` — Birth/death/evaluation events
-- `logs/deep_run.log` — Full run log
-- `population/pool.json` — Current population with fitness
-- `population/graveyard.json` — Dead organisms
-- `generations/genNNN/` — Per-generation snapshots
+| File | Description |
+|------|-------------|
+| `logs/deep_run.log` | Full run log with per-organism results |
+| `logs/evolution.csv` | Generation-level stats (CSV) |
+| `logs/events.jsonl` | Birth/death/evaluation events |
+| `logs/fitness_cache.json` | Persistent fitness cache for crash recovery |
+| `population/pool.json` | Current population with fitness |
+| `population/graveyard.json` | Dead organisms |
+| `generations/genNNN/` | Per-generation snapshots |
 
 ---
 
@@ -178,3 +237,4 @@ Logs generated:
 
 1. Stanley, K. O., & Miikkulainen, R. (2002). Evolving Neural Networks through Augmenting Topologies.
 2. Lehman, J., & Stanley, K. O. (2011). Abandoning Objectives: Evolution Through the Search for Novelty Alone.
+3. Eiben, A. E., & Smith, J. E. (2015). Introduction to Evolutionary Computing.
