@@ -11,7 +11,7 @@ class RateLimiter:
         self.bucket = float(burst)
         self.last_refill = time.time()
         self.backoff_multiplier = 1.0
-        self.max_backoff = 120.0
+        self.max_backoff = 30.0
         self.lock = threading.Lock()
         self.log_path = log_path
         self.events = []
