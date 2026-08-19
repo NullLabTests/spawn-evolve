@@ -146,7 +146,25 @@ class EvolutionEngine:
         self.evolution_log = []
         self.events = []
         self.fitness_cache = {}
+        self._load_fitness_cache()
         self.errors = []
+
+    def _load_fitness_cache(self):
+        cache_path = f"{self.log_dir}/fitness_cache.json"
+        if os.path.exists(cache_path):
+            try:
+                with open(cache_path) as f:
+                    self.fitness_cache = json.load(f)
+                log(f"  Loaded {len(self.fitness_cache)} cached fitness results from disk")
+            except Exception:
+                self.fitness_cache = {}
+
+    def _save_fitness_cache(self):
+        try:
+            with open(f"{self.log_dir}/fitness_cache.json", "w") as f:
+                json.dump(self.fitness_cache, f)
+        except Exception:
+            pass
 
     def run(self):
         log(f"{'='*60}")
@@ -294,11 +312,14 @@ class EvolutionEngine:
             self.lineage.register_fitness(org_id, result["total"], result["components"])
             self.fitness_cache[cache_key] = result
             evaluated += 1
+            if evaluated % 10 == 0:
+                self._save_fitness_cache()
             self._emit_event("evaluation", {
                 "org_id": org_id, "arena": arena, "fitness": result["total"],
                 "components": result["components"]
             })
 
+        self._save_fitness_cache()
         log(f"  Eval complete: {evaluated} evaluated, {cached} cached, {errors} errors")
 
     def _compute_generation_stats(self, gen):
@@ -418,6 +439,7 @@ class EvolutionEngine:
             json.dump(self.evolution_log, f, indent=2)
         with open(f"{self.log_dir}/errors.json", "w") as f:
             json.dump(self.errors, f, indent=2)
+        self._save_fitness_cache()
         self.lineage.save()
 
     def _emit_event(self, event_type, data):

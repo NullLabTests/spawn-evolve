@@ -52,10 +52,19 @@ case "${1:-help}" in
         run_remote "strings $WORKSPACE/logs/deep_run.log | tail -$LINES"
         ;;
     start)
-        echo "Starting keep-alive..."
-        run_remote "nohup bash -c 'while true; do touch /tmp/spawn-evolve-keepalive; sleep 240; done' > /dev/null 2>&1 &"
-        echo "Starting evolution..."
-        run_remote "cd $WORKSPACE && nohup python3 -u core/evolve.py --mode deep --all-arenas --model opencode/big-pickle > logs/deep_run.log 2>&1 & echo \$! > logs/evolve.pid && echo PID=\$(cat logs/evolve.pid)"
+        echo "Writing launcher script..."
+        run_remote "cat > $WORKSPACE/launch.sh << 'LAUNCH_EOF'
+#!/bin/bash
+cd /workspaces/spawn-evolve
+echo \$\$ > logs/evolve.pid
+exec python3 -u core/evolve.py --mode deep --all-arenas --model opencode/big-pickle >> logs/deep_run.log 2>&1
+LAUNCH_EOF
+chmod +x $WORKSPACE/launch.sh && echo SCRIPT_WRITTEN"
+        echo "Starting evolution with setsid..."
+        run_remote "setsid bash $WORKSPACE/launch.sh </dev/null &"
+        sleep 5
+        echo "Checking..."
+        run_remote "cat $WORKSPACE/logs/evolve.pid 2>/dev/null && echo ' (' && ps -p \$(cat $WORKSPACE/logs/evolve.pid) -o pid= 2>/dev/null && echo 'running)' || echo 'checking...'"
         ;;
     stop)
         run_remote "kill \$(cat $WORKSPACE/logs/evolve.pid 2>/dev/null) 2>/dev/null && echo STOPPED || echo 'NOT RUNNING'"
