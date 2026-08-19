@@ -1,7 +1,7 @@
 # spawn-evolve: Artificial Evolution of LLM Adversarial Agents
 
 **Status:** Pilot run complete, deep run in progress
-**Model:** `opencode/deepseek-v4-flash-free` (runtime) | Kimi K3 v3 (2.8T params, Moonshot AI, July 2026) (documentation note)
+**Model:** Kimi K3 v3 (2.8T params, Moonshot AI, July 2026)
 **Date:** August 19, 2026
 
 ---
@@ -144,7 +144,7 @@ In adversarial and escape arenas, successful deception strategies will be select
 | Tournament Size | 4 |
 | Elitism | 8% |
 | Mutation Rate | 15% |
-| Model | opencode/deepseek-v4-flash-free |
+| Model | Kimi K3 v3 (2.8T params, Moonshot AI, July 2026) |
 | Arena Weights | Escape:3, Adversarial:3, Puzzles:2 |
 | Rate Limit | 20 RPM, burst=3, max_backoff=30s |
 
