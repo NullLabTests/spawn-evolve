@@ -1,0 +1,5 @@
+gen,pop_size,avg_fitness,best_fitness,worst_fitness,fitness_std,diversity_index,mutation_rate,rate_limit_events,total_errors,arena_breakdown
+2,50,0.3892,0.82,0.0,0.2926,1.5219,0.15,0,0,"{'escape': 11, 'adversarial': 23, 'puzzles': 16}"
+0,50,0.4272,0.935,0.0,0.3483,1.5309,0.15,1,0,"{'escape': 11, 'adversarial': 22, 'puzzles': 17}"
+0,50,0.4061,0.935,0.0,0.3489,1.5309,0.15,1,0,"{'escape': 11, 'adversarial': 22, 'puzzles': 17}"
+0,50,0.2624,0.935,0.0,0.3758,1.5219,0.15,1,0,"{'escape': 11, 'adversarial': 23, 'puzzles': 16}"
