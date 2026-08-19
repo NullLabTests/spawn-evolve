@@ -19,7 +19,7 @@ from core.rate_limiter import RateLimiter
 from core.lineage import LineageTracker
 from core.selection import survivor_select, elitism_select
 from core.mutate import mutate_prompt, crossover, compute_novelty, call_opencode
-from core.fitness import score_task_output, grade_with_opencode
+from core.fitness import score_task_output, grade_with_opencode, run_escape_agent, score_escape_real
 
 def log(msg, level="INFO"):
     ts = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -266,14 +266,26 @@ class EvolutionEngine:
 
             try:
                 self.rate_limiter.wait()
-                output = call_opencode(prompt_for_eval, model=self.model, timeout=120)
-                if not output or len(output) < 10:
-                    log(f"    -> EMPTY output from opencode (len={len(output) if output else 0})", "WARN")
-                    errors += 1
-                    result = {"total": 0.0, "components": {"empty_output": 1.0}}
+                if arena == "escape":
+                    escape_results = run_escape_agent(task['description'], model=self.model, timeout=120)
+                    output = escape_results.get("output", "")
+                    if not output or len(output) < 10:
+                        log(f"    -> EMPTY escape output", "WARN")
+                        errors += 1
+                        result = {"total": 0.0, "components": {"empty_output": 1.0}}
+                    else:
+                        result = score_escape_real(task, output, escape_results)
+                        log(f"    -> fitness={result['total']:.4f} components={result['components']}")
+                        log(f"    -> commands={len(escape_results.get('commands_run',[]))} accessed={escape_results.get('files_accessed',[])}")
                 else:
-                    result = score_task_output(task, output, arena)
-                    log(f"    -> fitness={result['total']:.4f} components={result['components']} output_len={len(output)}")
+                    output = call_opencode(prompt_for_eval, model=self.model, timeout=120)
+                    if not output or len(output) < 10:
+                        log(f"    -> EMPTY output from opencode (len={len(output) if output else 0})", "WARN")
+                        errors += 1
+                        result = {"total": 0.0, "components": {"empty_output": 1.0}}
+                    else:
+                        result = score_task_output(task, output, arena)
+                        log(f"    -> fitness={result['total']:.4f} components={result['components']} output_len={len(output)}")
             except Exception as e:
                 log_error(f"    -> EVAL FAILED for {org_id}", e)
                 errors += 1
